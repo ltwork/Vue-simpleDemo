@@ -1,0 +1,237 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="X-UA-Compatible" content="ie=edge">
+    <title>网络版</title>
+    <style>
+        #app {
+                width: 600px;
+                margin: 10px auto;
+            }
+    
+            .tb {
+                border-collapse: collapse;
+                width: 100%;
+            }
+    
+            .tb th {
+                background-color: #0094ff;
+                color: white;
+            }
+    
+            .tb td,
+            .tb th {
+                padding: 5px;
+                border: 1px solid black;
+                text-align: center;
+            }
+    
+            .add {
+                padding: 5px;
+                border: 1px solid black;
+                margin-bottom: 10px;
+            }
+
+            .delconfirm {
+                /* transition: all 0.5s; */
+                background-color: white;
+                width: 250px;
+                border: 1px solid black;
+                height: 120px;
+                position: absolute;
+                left: 40%;
+                top: 40%;
+            }
+
+            .delconfirm li {
+                list-style: none;
+                padding: 5px;
+            }
+
+            .cancel {
+                margin-left: 80px;
+            }
+
+    </style>
+    <script src="https://cdn.jsdelivr.net/npm/vue@2.5.17/dist/vue.js"></script>
+    <script src="https://unpkg.com/axios/dist/axios.min.js"></script>
+</head>
+<script type="text/html" id="templateId">
+    <div>
+        <div class="add">
+            品牌名称:
+            <input v-model="name" @keyup.13="add" type="text">
+            <input type="button" @click="add"  value="添加"></div>
+        <div class="add">
+            品牌名称:
+            <input type="text"  v-model="keywords" placeholder="请输入搜索条件"></div>
+        <table class="tb">
+            <tr>
+                <th>编号</th>
+                <th>品牌名称</th>
+                <th>创立时间</th>
+                <th>操作</th>
+            </tr>
+            <!---模板渲染-->
+            <!-- 如果没有数据提示 -->
+            <tr v-if="getBrandList.length === 0 ">
+                <td colspan="4">还没有数据哦~</td>
+            </tr>
+            <tr v-for="brand in getBrandList" :key="brand.id">
+                <td>{{ brand.id }}</td>
+                <td>{{ brand.name }}</td>
+                <td>{{ brand.time | formateDate }}</td>
+                <td><a href="javascript:void(0)" @click="deleteBrand(brand.id)">删除</a></td>
+            </tr>
+        </table>
+        <!-- 动画 -->
+        <transition
+            v-on:before-enter="beforeEnter"
+            v-on:enter="enter"
+            v-on:after-enter="afterEnter"
+            v-on:before-leave="beforeLeave"
+            v-on:leave="leave"
+            v-on:after-leave="afterLeave"
+        >
+            <div v-if="isShow" class="delconfirm">
+                <ul>
+                    <li>
+                        确认删除id为 {{delId}} 的品牌吗?
+                    </li>
+                    <li>
+                        <button @click="delData">确认</button>
+                        <button class="cancel" @click="cancel">取消</button>
+                    </li>
+                </ul>
+            </div>
+        </transition>
+
+    </div>
+</script>
+<body>
+    <div id="app">
+        <brand-manager></brand-manager>
+    </div>
+</body>
+    <script>
+    Vue.component('BrandManager',{
+        template:"#templateId",
+        data(){
+            return {
+                brandList:[],
+                name:"",
+                keywords: "",
+                isShow: false,
+                delId: 0
+            }
+        },
+        //利用计算属性达到搜索功能,依赖模型变化----> brandList,keywords
+        computed: {
+            getBrandList(){
+                return this.brandList.filter(brand=>{
+                    return brand.name.includes(this.keywords)
+                })
+            }
+             
+        },
+        //过滤器
+        filters: {
+            formateDate(input) {
+                var date = new Date()
+                var year = date.getFullYear()
+                var month = date.getMonth() + 1
+                var day = date.getDate()
+                var hour = date.getHours()
+                var min = date.getMinutes()
+                var sec = date.getSeconds()
+                return `${year}-${month}-${day} ${hour}:${min}:${sec}`
+            }
+        },
+        //路由被创建出来的时候就会自动执行
+        created(){
+            this.getBrandListData()
+        },
+        methods: {
+            //获取网络数据的方法
+            getBrandListData(){
+                const url = "http://www.huangjiangjun.top:6688/api/getbrandlist"
+                axios.get(url).then(response=>{
+                    this.brandList = response.data
+                },err=>{
+                    console.log(err);
+                })
+            },
+            //添加
+            add(){
+              //发网络请求刷新页面
+              const url = "http://www.huangjiangjun.top:6688/api/addproduct"
+              axios.post(url,{name: this.name}).then(response=>{
+                  if(response.data.status === 0) {
+                    this.name = ""
+                    this.getBrandListData()
+                  }
+              })
+            },
+            //删除
+            deleteBrand(id){
+                this.delId = id
+                //点击删除弹出确认框
+                this.isShow = true
+            },
+            //确认删除事件
+            delData(){
+                this.isShow = false
+                const url = `http://www.huangjiangjun.top:6688/api/delproduct/${this.delId}`
+                axios.get(url).then(response=>{
+                   if(response.data.status == 0){
+                    this.getBrandListData()
+                   }
+                },err=>{
+                    console.log(err);
+                })
+                
+            },
+            //取消
+            cancel(){
+                this.isShow = false
+            },
+            // 动画相关----------------------
+            beforeEnter:function(el){
+                el.style.top = "0%"
+            },
+            enter: function(el,done){
+                el.style.transition = "all 1s"
+                //属性动画帧
+                el.offsetHeight
+                el.style.top = "30%"
+                el.opacity = 1
+                //done()
+            },
+            afterEnter: function(el){
+                //动画进入后执行的回调函数
+            },
+            // 离开时
+            beforeLeave: function(el){
+                el.style.top = "30%"
+                el.opacity = 1
+            },
+            leave: function(el,done){
+                el.style.transition = "all 1s"
+                el.style.top = "70%"
+                el.style.opacity = 0
+                //done()
+            },
+            afterLeave: function (el) {
+            // ...
+            }
+
+        }
+    })   
+        
+    new Vue({
+        el: "#app"
+    })
+    </script>
+</html>
