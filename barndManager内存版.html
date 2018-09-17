@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="X-UA-Compatible" content="ie=edge">
+    <title>Document</title>
+    <style>
+        #app {
+            width: 600px;
+            margin: 10px auto;
+            } 
+        .tb {
+            border-collapse: collapse;
+            width: 100%;
+        }
+        .tb th {
+            background-color: #0094ff;
+            color: white;
+        }       
+        .tb td,
+        .tb th {
+            padding: 5px;
+            border: 1px solid black;
+            text-align: center;
+        }
+            .add {
+                padding: 5px;
+                border: 1px solid black;
+                margin-bottom: 10px;
+            }
+    </style>
+    <script src="https://cdn.jsdelivr.net/npm/vue@2.5.17/dist/vue.js"></script>
+</head>
+<script type="text/html" id="templateId">
+    <div>
+        <div class="add">
+            编号:
+            <input v-model="id" type="text"> 
+            品牌名称:
+            <input v-model="name" @keyup.13="add" type="text">
+            <input type="button" @click="add"  value="添加"></div>
+        <div class="add">
+            品牌名称:
+            <input type="text" @keyup.13="search" v-model="keywords" placeholder="请输入搜索条件"></div>
+        <table class="tb">
+            <tr>
+                <th>编号</th>
+                <th>品牌名称</th>
+                <th>创立时间</th>
+                <th>操作</th>
+            </tr>
+            <!---模板渲染-->
+            <!-- 如果没有数据提示 -->
+            <tr v-if="brandList.length === 0 ">
+                <td colspan="4">还没有数据哦~</td>
+            </tr>
+            <tr v-for="(brand,index) in brandList" :key="brand.id">
+                <td>{{ brand.id }}</td>
+                <td>{{ brand.name }}</td>
+                <td>{{ brand.time | formateDate }}</td>
+                <td><a href="javascript:void(0)" @click="deleteBrand(index)">删除</a></td>
+            </tr>
+        </table>
+    </div>
+</script>
+<body>
+    <div id="app">
+        <brand-manager></brand-manager>
+    </div>
+</body>
+    <script>
+    Vue.component('BrandManager',{
+        template:"#templateId",
+        data(){
+            return {
+               brandList:[
+                   {id: 1,name:"LV",time: new Date()}
+               ],
+                id: "",
+                name:"",
+                keywords: "",
+                oldBrandList:[]
+            }
+        },
+        //过滤器
+        filters: {
+            formateDate(input) {
+                var date = new Date(input)
+                var year = date.getFullYear()
+                var month = date.getMonth() + 1
+                var day = date.getDate()
+                var hour = date.getHours()
+                var min = date.getMinutes()
+                var sec = date.getSeconds()
+                return `${year}-${month}-${day} ${hour}:${min}:${sec}`
+            }
+        },
+        //路由被创建出来的时候就会自动执行
+        created(){
+            this.oldBrandList = this.brandList
+        },
+        methods: {
+            //添加
+            add(){
+               this.brandList.push({
+                   id: this.id,name:this.name,time:new Date()
+               })
+               this.id = ""
+               this.name = ""
+               //存
+               this.oldBrandList = this.brandList
+            },
+            //删除
+            deleteBrand(index){
+                this.brandList.splice(index,1)
+                //存
+                this.oldBrandList = this.brandList
+            },
+            //搜索
+            search(){
+                //如果输入的关键字为空 就从新加载原数据
+                if(this.keywords.trim().length == 0) {
+                    this.brandList = this.oldBrandList
+                    return
+                }
+                const newBrandList = this.brandList.filter(function(brand,index,arr){
+                    return brand.name.includes(this.keywords)
+                },this)
+                this.brandList = newBrandList
+            }
+        }
+    })   
+        
+    const vm = new Vue({
+        el: "#app"
+    })
+    </script>
+</html>
